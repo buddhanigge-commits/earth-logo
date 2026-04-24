@@ -1,0 +1,1382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>EARTH</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<style>
+  html, body { margin: 0; padding: 0; background: #000; overflow: hidden; }
+  canvas { display: block; }
+  #studio {
+    position: fixed; top: 12px; right: 12px; z-index: 99;
+    background: rgba(8,14,10,0.82); border: 1px solid #2a4;
+    padding: 10px 14px; font: 11px ui-monospace, monospace;
+    color: #9fc; backdrop-filter: blur(6px);
+    width: 240px; min-width: 140px; max-width: 95vw;
+    max-height: 90vh; overflow: auto;
+    resize: both;
+  }
+  #studio::-webkit-resizer {
+    background:
+      linear-gradient(135deg,
+        transparent 0 35%,
+        #4fa 35% 45%,
+        transparent 45% 60%,
+        #4fa 60% 70%,
+        transparent 70% 85%,
+        #4fa 85% 95%,
+        transparent 95%);
+    background-color: rgba(40,90,60,0.6);
+  }
+  #studio::-webkit-scrollbar { width: 8px; }
+  #studio::-webkit-scrollbar-thumb { background: #2a4; border-radius: 4px; }
+  #studio::-webkit-scrollbar-track { background: transparent; }
+  #studio.hidden { display: none; }
+  #studio h4 { margin: 0 0 8px; font-size: 11px; opacity: 0.8; letter-spacing: 0.08em; }
+  #studio .row { display: flex; align-items: center; margin: 3px 0; gap: 8px; }
+  #studio label { width: 68px; opacity: 0.65; }
+  #studio input[type=range] { flex: 1; accent-color: #4fa; }
+  #studio input[type=color] { flex: 1; height: 18px; padding: 0; border: 1px solid #2a4; background: #111; cursor: pointer; }
+  #studio .val { width: 40px; text-align: right; opacity: 0.9; }
+  #studio .hint { margin-top: 8px; opacity: 0.5; font-size: 10px; }
+  #studio .btns { display: flex; gap: 4px; margin-top: 8px; }
+  #studio .sbtn { flex: 1; background: #111; color: #9fc; border: 1px solid #2a4; padding: 5px 6px; font: 10px ui-monospace, monospace; cursor: pointer; border-radius: 2px; }
+  #studio .sbtn:hover { background: #1a2a1a; }
+  #studio .sbtn.reset { color: #fa7; border-color: #f73; }
+  #studio .sbtn.rand { color: #fcf; border-color: #c3f; background: #1a0a1a; }
+  #studio .sbtn.rand:hover { background: #2a1a2a; }
+  #studio select.sbtn { padding: 4px 6px; }
+</style>
+</head>
+<body>
+<div id="studio" class="hidden">
+  <h4>EARTH · studio</h4>
+  <div class="row"><label>bloom</label><input type="range" min="0" max="2" step="0.02" data-k="bloom"><span class="val"></span></div>
+  <div class="row"><label>radius</label><input type="range" min="0" max="2" step="0.02" data-k="bloomRadius"><span class="val"></span></div>
+  <div class="row"><label>threshold</label><input type="range" min="0" max="1" step="0.01" data-k="bloomThr"><span class="val"></span></div>
+  <div class="row"><label>loop sec</label><input type="range" min="5" max="120" step="1" data-k="loop"><span class="val"></span></div>
+  <div class="row"><label>zoom</label><input type="range" min="0.3" max="2.5" step="0.02" data-k="zoom"><span class="val"></span></div>
+  <div class="row"><label>fov</label><input type="range" min="20" max="90" step="1" data-k="fov"><span class="val"></span></div>
+  <div class="row"><label>wobble</label><input type="range" min="0" max="0.6" step="0.005" data-k="wobble"><span class="val"></span></div>
+  <div class="row"><label>motion</label><input type="range" min="0" max="3" step="0.05" data-k="motion"><span class="val"></span></div>
+  <div class="row"><label>breath</label><input type="range" min="0" max="3" step="0.05" data-k="breath"><span class="val"></span></div>
+  <div class="row"><label>bob</label><input type="range" min="0" max="3" step="0.05" data-k="bob"><span class="val"></span></div>
+  <div class="row"><label>sway</label><input type="range" min="0" max="3" step="0.05" data-k="sway"><span class="val"></span></div>
+  <div class="row"><label>rustle</label><input type="range" min="0" max="3" step="0.05" data-k="rustle"><span class="val"></span></div>
+  <div class="row"><label>roots</label><input type="range" min="0" max="2" step="0.02" data-k="roots"><span class="val"></span></div>
+  <div class="row"><label>primary thick</label><input type="range" min="0.5" max="3" step="0.05" data-k="primaryThick"><span class="val"></span></div>
+  <div class="row"><label>branch thick</label><input type="range" min="0.5" max="3" step="0.05" data-k="branchThick"><span class="val"></span></div>
+  <div class="row"><label>orb size</label><input type="range" min="0.3" max="3" step="0.02" data-k="orbSize"><span class="val"></span></div>
+  <div class="row"><label>orb intensity</label><input type="range" min="0" max="3" step="0.02" data-k="orbIntensity"><span class="val"></span></div>
+  <div class="row"><label>orb color</label><input type="color" data-ck="orbColor"></div>
+  <div class="row"><label>core color</label><input type="color" data-ck="coreColor"></div>
+  <div class="row"><label>hot color</label><input type="color" data-ck="hotColor"></div>
+  <div class="row"><label>primary color</label><input type="color" data-ck="primaryColor"></div>
+  <div class="row"><label>front</label><input type="range" min="0" max="3" step="0.05" data-k="front"><span class="val"></span></div>
+  <div class="row"><label>roundness</label><input type="range" min="0" max="2" step="0.02" data-k="sharp"><span class="val"></span></div>
+  <div class="row"><label>round</label><input type="range" min="0" max="2" step="0.02" data-k="round"><span class="val"></span></div>
+  <div class="row"><label>clamp</label><input type="range" min="0" max="1.5" step="0.02" data-k="clampR"><span class="val"></span></div>
+  <div class="row"><label>brightness</label><input type="range" min="0" max="2" step="0.02" data-k="glow"><span class="val"></span></div>
+  <div class="row"><label>tint R</label><input type="range" min="0" max="2" step="0.02" data-k="tintR"><span class="val"></span></div>
+  <div class="row"><label>tint G</label><input type="range" min="0" max="2" step="0.02" data-k="tintG"><span class="val"></span></div>
+  <div class="row"><label>tint B</label><input type="range" min="0" max="2" step="0.02" data-k="tintB"><span class="val"></span></div>
+  <div class="btns"><button id="randomBtn" class="sbtn rand" style="flex:1;padding:8px;font-size:12px;letter-spacing:0.1em;">⚡ RANDOM</button></div>
+  <div class="btns">
+    <button id="undoBtn" class="sbtn">undo</button>
+    <button id="resetBtn" class="sbtn reset">reset</button>
+    <button id="saveBtn" class="sbtn">save</button>
+    <button id="delBtn" class="sbtn">del</button>
+  </div>
+  <div class="btns">
+    <button id="exportBtn" class="sbtn">export</button>
+    <button id="importBtn" class="sbtn">import</button>
+  </div>
+  <div class="btns"><select id="loadSel" class="sbtn"><option value="">— load preset —</option></select></div>
+  <div class="hint">S toggle · +/- panel size · 0 reset size · URL saves tweaks</div>
+  <button id="recBtn" style="margin-top:10px;width:100%;background:#111;color:#7f7;border:1px solid #7f7;padding:6px 14px;font:11px ui-monospace,monospace;cursor:pointer;">REC</button>
+</div>
+<script type="module">
+import * as THREE from 'https://esm.sh/three@0.160.0';
+import { EffectComposer } from 'https://esm.sh/three@0.160.0/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'https://esm.sh/three@0.160.0/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'https://esm.sh/three@0.160.0/examples/jsm/postprocessing/UnrealBloomPass.js';
+
+const defaults = {
+  bloom: 0.50, bloomRadius: 0.6, bloomThr: 0, loop: 45, zoom: 1.0, fov: 45, wobble: 0.12,
+  motion: 1.0,
+  breath: 1.0, bob: 1.0, sway: 1.0, front: 1.0, glow: 1.0, sharp: 0, round: 0.58, clampR: 0,
+  rustle: 1.0, roots: 0.5, primaryThick: 1.0, branchThick: 1.0,
+  orbSize: 1.0, orbIntensity: 1.0,
+  tintR: 1.0, tintG: 1.0, tintB: 1.0,
+};
+const colorDefaults = {
+  orbColor: '#ffffff',
+  primaryColor: '#ffffff',
+  coreColor: '#ffffff',
+  hotColor: '#ffffff',
+};
+function hexToRgb(h) {
+  const n = h.replace('#','');
+  return [
+    parseInt(n.slice(0,2), 16) / 255,
+    parseInt(n.slice(2,4), 16) / 255,
+    parseInt(n.slice(4,6), 16) / 255,
+  ];
+}
+const urlParams = new URLSearchParams(window.location.search);
+const params = {};
+for (const k of Object.keys(defaults)) {
+  const raw = urlParams.get(k);
+  params[k] = raw !== null && !isNaN(parseFloat(raw)) ? parseFloat(raw) : defaults[k];
+}
+const colorParams = {};
+for (const k of Object.keys(colorDefaults)) {
+  const raw = urlParams.get(k);
+  colorParams[k] = (raw && /^[0-9a-fA-F]{6}$/.test(raw)) ? '#' + raw : colorDefaults[k];
+}
+const showStudio = urlParams.has('studio');
+
+const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+const THICKNESS_RATIO = 0.52;
+const LENGTH_RATIO = 0.68;
+const SPHERE_TRIM = 170;
+const TWIG_TRIM = 178;
+const WAIST_HALF_HEIGHT = 30;
+const WAIST_INNER_R = 34;
+const WAIST_OUTER_R = 150;
+
+function noise(x, y = 0, z = 0) {
+  const v = Math.sin(x * 2.1 + y * 3.7 + z * 1.9) * 0.5 +
+            Math.sin(x * 4.3 - y * 1.1 + z * 2.5) * 0.25 +
+            Math.sin(x * 7.9 + y * 5.3 - z * 3.7) * 0.125;
+  return (v + 0.875) / 1.75;
+}
+const rand = (n = 1) => Math.random() * n;
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+
+function softSpherePull(p, targetR, softness) {
+  const d = p.length();
+  if (d <= targetR || d === 0) return;
+  const overshoot = d - targetR;
+  const pulled = d - overshoot * softness;
+  p.multiplyScalar(pulled / d);
+}
+
+function repelFromWaist(p, isRoot, amount) {
+  const radial = Math.sqrt(p.x * p.x + p.z * p.z);
+  const ay = Math.abs(p.y);
+  if (ay < WAIST_HALF_HEIGHT && radial > WAIST_INNER_R && radial < WAIST_OUTER_R) {
+    const band = 1 - ay / WAIST_HALF_HEIGHT;
+    const midR = (WAIST_INNER_R + WAIST_OUTER_R) * 0.5;
+    const halfR = (WAIST_OUTER_R - WAIST_INNER_R) * 0.5;
+    const sideBand = clamp01(1 - Math.abs(radial - midR) / halfR);
+    const push = band * sideBand * amount;
+    p.y += isRoot ? -push : push;
+  }
+}
+
+function drapeOuterRim(p, isRoot, strength) {
+  const radial = Math.sqrt(p.x * p.x + p.z * p.z);
+  const edge = clamp01((radial - 98) / (TWIG_TRIM - 98));
+  if (edge <= 0) return;
+  let shoulder = 1 - clamp01(Math.abs(Math.abs(p.y) - 78) / 68);
+  shoulder = Math.pow(shoulder, 1.2);
+  const drape = strength * edge * shoulder;
+  p.y += isRoot ? drape : -drape;
+  if (radial > 0.0001) {
+    const ox = p.x / radial, oz = p.z / radial;
+    const outPush = drape * 0.24;
+    p.x += ox * outPush;
+    p.z += oz * outPush;
+  }
+}
+
+function getPerp(dir) {
+  const up = Math.abs(dir.y) < 0.9 ? V(0, 0, 1) : V(1, 0, 0);
+  return dir.clone().cross(up).normalize();
+}
+
+function pickColor() {
+  const roll = Math.random();
+  if (roll > 0.6) return { cr: 35 + rand(25), cg: 160 + rand(35), cb: 75 + rand(25) };
+  if (roll > 0.25) return { cr: 26 + rand(20), cg: 120 + rand(30), cb: 55 + rand(20) };
+  return { cr: 18 + rand(15), cg: 90 + rand(25), cb: 45 + rand(18) };
+}
+
+const branches = [];
+
+function buildBranch(origin, direction, radius, length, depth, maxDepth, rotAccum, isRoot) {
+  if (depth > maxDepth || radius < 0.12 || length < 1.5) return;
+  const dir = direction.clone().normalize();
+  const pts = [];
+
+  for (let i = 0; i <= 6; i++) {
+    const t = i / 6;
+    const stemBias = Math.pow(t, 1.18);
+    const p = origin.clone().add(dir.clone().multiplyScalar(t * length));
+
+    const perp = getPerp(dir);
+    const perp2 = dir.clone().cross(perp).normalize();
+
+    let curlA, curlB;
+    if (depth === 0)      { curlA = 0.22; curlB = 0.15; }
+    else if (depth === 1) { curlA = 0.16; curlB = 0.11; }
+    else if (depth === 2) { curlA = 0.11; curlB = 0.075; }
+    else                  { curlA = 0.07; curlB = 0.05; }
+
+    p.add(perp.clone().multiplyScalar(
+      Math.sin(t * Math.PI * 1.75 + rotAccum) * length * curlA * stemBias * Math.sin(rotAccum * 0.9)
+    ));
+    p.add(perp2.clone().multiplyScalar(
+      Math.sin(t * Math.PI * 1.15 + rotAccum * 1.85) * length * curlB * stemBias * Math.cos(rotAccum * 0.7)
+    ));
+
+    p.x += (noise(t * 7 + Math.abs(rotAccum), depth, 0) - 0.5) * length * 0.032;
+    p.z += (noise(t * 7 + Math.abs(rotAccum), depth, 1) - 0.5) * length * 0.032;
+
+    const targetR = depth <= 1 ? SPHERE_TRIM : depth <= 3 ? SPHERE_TRIM + 4 : SPHERE_TRIM + 7;
+    const softness = depth <= 1 ? 0.56 : depth <= 3 ? 0.38 : 0.22;
+    softSpherePull(p, targetR, softness);
+
+    if (depth <= 2) repelFromWaist(p, isRoot, length * 0.12);
+    if (depth >= 2) {
+      const radialNow = Math.sqrt(p.x * p.x + p.z * p.z);
+      const edgeBias = clamp01((radialNow - 96) / (TWIG_TRIM - 96));
+      drapeOuterRim(p, isRoot, length * (0.08 + 0.08 * stemBias + 0.08 * edgeBias));
+    }
+
+    pts.push(p);
+  }
+
+  branches.push({ pts, radius, depth, isRoot, ...pickColor() });
+
+  const endPoint = pts[pts.length - 1];
+  const numChildren = depth < 1 ? 4 : depth < 2 ? 3 : 2;
+  const childRadius = radius * THICKNESS_RATIO;
+  const childLength = length * LENGTH_RATIO;
+  let splitAngle;
+  if (depth === 0)      splitAngle = 0.36;
+  else if (depth === 1) splitAngle = 0.46;
+  else if (depth === 2) splitAngle = 0.56;
+  else                  splitAngle = 0.66;
+
+  for (let c = 0; c < numChildren; c++) {
+    const goldenRot = rotAccum + GOLDEN_ANGLE * (c + 1);
+    const perp = getPerp(dir);
+    const perp2 = dir.clone().cross(perp).normalize();
+    const splitDir = new THREE.Vector3();
+    splitDir.add(dir.clone().multiplyScalar(Math.cos(splitAngle)));
+    splitDir.add(perp.clone().multiplyScalar(Math.sin(splitAngle) * Math.cos(goldenRot)));
+    splitDir.add(perp2.clone().multiplyScalar(Math.sin(splitAngle) * Math.sin(goldenRot)));
+    splitDir.normalize();
+
+    const endRadial = Math.sqrt(endPoint.x * endPoint.x + endPoint.z * endPoint.z);
+    const rimBias = clamp01((endRadial - 96) / (SPHERE_TRIM - 96));
+    if (depth >= 2 && rimBias > 0) {
+      splitDir.y += (isRoot ? 1 : -1) * rimBias * 0.18;
+      const outward = V(endPoint.x, 0, endPoint.z);
+      if (outward.length() > 0.0001) {
+        outward.normalize();
+        splitDir.add(outward.multiplyScalar(rimBias * 0.10));
+      }
+      splitDir.normalize();
+    }
+
+    buildBranch(endPoint, splitDir, childRadius, childLength, depth + 1, maxDepth, goldenRot, isRoot);
+  }
+
+  if (depth >= maxDepth - 1) {
+    const polarShell = clamp01(Math.abs(endPoint.y) / SPHERE_TRIM);
+    const radialShell = clamp01(
+      (Math.sqrt(endPoint.x * endPoint.x + endPoint.z * endPoint.z) - 104) / (TWIG_TRIM - 104)
+    );
+    const numMicro = 2
+      + Math.floor(polarShell * 2)
+      + Math.floor(radialShell * 4)
+      + Math.floor(noise(rotAccum * 0.5) * 2);
+
+    for (let m = 0; m < numMicro; m++) {
+      const mDir = V(
+        dir.x + (noise(rotAccum + m * 3, 0) - 0.5) * 1.35,
+        dir.y + (noise(rotAccum + m * 3, 1) - 0.5) * 0.65,
+        dir.z + (noise(rotAccum + m * 3, 2) - 0.5) * 1.35
+      );
+      const outward = V(endPoint.x, 0, endPoint.z);
+      if (outward.length() > 0.0001) outward.normalize();
+      mDir.add(outward.multiplyScalar(radialShell * 0.22));
+      mDir.y += (isRoot ? 1 : -1) * radialShell * 0.26;
+      mDir.normalize();
+
+      const mLen = length * (0.11 + polarShell * 0.05 + radialShell * 0.15)
+        + noise(rotAccum + m * 7) * length * 0.08;
+
+      const mPts = [];
+      for (let s = 0; s <= 4; s++) {
+        const mt = s / 4;
+        const mp = endPoint.clone().add(mDir.clone().multiplyScalar(mt * mLen));
+        mp.x += (noise(mt * 5 + rotAccum + m, 0) - 0.5) * 1.5;
+        mp.z += (noise(mt * 5 + rotAccum + m, 1) - 0.5) * 1.5;
+        softSpherePull(mp, TWIG_TRIM + radialShell * 4, 0.16);
+        drapeOuterRim(mp, isRoot, mLen * (0.30 + radialShell * 0.18));
+        mPts.push(mp);
+      }
+      branches.push({ pts: mPts, radius: radius * 0.25, depth: depth + 1, isRoot, ...pickColor() });
+    }
+  }
+}
+
+const trunkH = 56;
+const trunkR = 7.5;
+
+const trunkPts = [];
+for (let i = 0; i <= 12; i++) {
+  const t = i / 12;
+  const y = -trunkH / 2 + t * trunkH;
+  trunkPts.push(V(noise(t * 5) * 2 - 1, y, noise(t * 5, 1) * 2 - 1));
+}
+branches.push({ pts: trunkPts, radius: trunkR, depth: 0, isRoot: false, ...pickColor() });
+
+const canopyOrigin = V(0, trunkH / 2, 0);
+
+const SYMMETRY = 6;  // N-fold rotational symmetry around Y
+
+const wedgePrimaries = 4;
+const spreads = [], lengths = [];
+for (let i = 0; i < wedgePrimaries; i++) {
+  spreads.push(0.68 + noise(i * 0.5) * 0.46);
+  lengths.push(80 + noise(i * 0.7) * 30);
+}
+
+for (let i = 0; i < wedgePrimaries; i++) {
+  const angle = (i / wedgePrimaries) * (Math.PI * 2 / SYMMETRY);
+  const dir = V(
+    Math.sin(spreads[i]) * Math.cos(angle),
+    Math.cos(spreads[i]),
+    Math.sin(spreads[i]) * Math.sin(angle)
+  ).normalize();
+  buildBranch(canopyOrigin, dir, trunkR * 0.55, lengths[i], 0, 5, i * GOLDEN_ANGLE, false);
+}
+
+const wedgeCrown = 2;
+for (let i = 0; i < wedgeCrown; i++) {
+  const a = (i / wedgeCrown) * (Math.PI * 2 / SYMMETRY);
+  const dir = V(Math.cos(a) * 0.28, 1, Math.sin(a) * 0.28).normalize();
+  const len = 56 + noise(700 + i * 0.31) * 18;
+  buildBranch(canopyOrigin, dir, trunkR * 0.34, len, 0, 4, 100 + i * 1.7, false);
+}
+
+// Rotate-replicate the wedge (skip trunk at index 0) N-1 more times around Y
+const wedgeEnd = branches.length;
+for (let k = 1; k < SYMMETRY; k++) {
+  const theta = k * (Math.PI * 2 / SYMMETRY);
+  const cos = Math.cos(theta), sin = Math.sin(theta);
+  for (let i = 1; i < wedgeEnd; i++) {
+    const b = branches[i];
+    const rotatedPts = b.pts.map(p => V(
+      p.x * cos - p.z * sin,
+      p.y,
+      p.x * sin + p.z * cos
+    ));
+    branches.push({
+      pts: rotatedPts,
+      radius: b.radius,
+      depth: b.depth,
+      isRoot: false,
+      cr: b.cr, cg: b.cg, cb: b.cb,
+    });
+  }
+}
+
+// Single pure-vertical apex branch (no rotation needed)
+buildBranch(canopyOrigin, V(0, 1, 0), trunkR * 0.5, 72, 0, 5, 0, false);
+
+// Y-mirror the entire top half (skip trunk) into the bottom half
+const topCount = branches.length;
+for (let i = 1; i < topCount; i++) {
+  const b = branches[i];
+  const mirroredPts = b.pts.map(p => V(p.x, -p.y, p.z));
+  branches.push({
+    pts: mirroredPts,
+    radius: b.radius,
+    depth: b.depth,
+    isRoot: true,
+    cr: b.cr, cg: b.cg, cb: b.cb,
+  });
+}
+
+console.log('Generated', branches.length, 'branches');
+
+// Measure geometry shape — compute optimal `round` value for visual sphere
+(() => {
+  const ys = [], rs = [];
+  for (const b of branches) {
+    for (const p of b.pts) {
+      ys.push(Math.abs(p.y));
+      rs.push(Math.sqrt(p.x * p.x + p.z * p.z));
+    }
+  }
+  ys.sort((a, b) => a - b);
+  rs.sort((a, b) => a - b);
+  const maxY = ys[ys.length - 1], maxR = rs[rs.length - 1];
+  const p95Y = ys[Math.floor(ys.length * 0.95)];
+  const p95R = rs[Math.floor(rs.length * 0.95)];
+  const p80Y = ys[Math.floor(ys.length * 0.80)];
+  const p80R = rs[Math.floor(rs.length * 0.80)];
+  const yScaleNeeded = (yMax, rMax) => rMax / yMax;
+  const roundFromScale = (s) => ((s - 1) / 0.18).toFixed(2);
+  console.log('--- SPHERE FIT ANALYSIS ---');
+  console.log(`Max extents: y=${maxY.toFixed(1)} r=${maxR.toFixed(1)}  →  needs Y-scale ${yScaleNeeded(maxY, maxR).toFixed(3)}  →  round = ${roundFromScale(yScaleNeeded(maxY, maxR))}`);
+  console.log(`P95 extents: y=${p95Y.toFixed(1)} r=${p95R.toFixed(1)}  →  needs Y-scale ${yScaleNeeded(p95Y, p95R).toFixed(3)}  →  round = ${roundFromScale(yScaleNeeded(p95Y, p95R))}`);
+  console.log(`P80 extents: y=${p80Y.toFixed(1)} r=${p80R.toFixed(1)}  →  needs Y-scale ${yScaleNeeded(p80Y, p80R).toFixed(3)}  →  round = ${roundFromScale(yScaleNeeded(p80Y, p80R))}`);
+  console.log('--- pick the percentile that matches your visual definition of "round" ---');
+})();
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+
+const camera = new THREE.PerspectiveCamera(params.fov, window.innerWidth / window.innerHeight, 1, 2000);
+camera.position.set(0, 0, 720);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const positions = [];
+const colors = [];
+const baseAlphas = [];
+const primaries = [];
+const branches_attr = [];
+
+function pushSegment(p1, p2, r, g, b, alpha, primary = 0, branchW = 0) {
+  positions.push(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
+  colors.push(r, g, b, r, g, b);
+  baseAlphas.push(alpha, alpha);
+  primaries.push(primary, primary);
+  branches_attr.push(branchW, branchW);
+}
+
+for (const b of branches) {
+  const br = b.cr / 255, bg = b.cg / 255, bb = b.cb / 255;
+  const isMicro = b.depth >= 5 || b.radius < 0.5;
+  const microBoost = isMicro ? 1.15 : 1.0;
+  // primary weight: 1.0 for trunk + primaries (depth 0), 0.6 for secondary (depth 1), 0 for rest
+  const primary = b.depth === 0 ? 1.0 : (b.depth === 1 ? 0.6 : 0.0);
+  // branch weight: peaks at depth 2-3 (the "legs" — limbs between primaries and tendrils)
+  const branchW = b.depth === 1 ? 0.4 : (b.depth === 2 ? 1.0 : (b.depth === 3 ? 0.8 : (b.depth === 4 ? 0.4 : 0.0)));
+
+  for (let s = 1; s < b.pts.length; s++) {
+    const segT = s / (b.pts.length - 1);
+    const taper = Math.pow(1 - segT * 0.7, 0.5);
+    const a = Math.min(1, ((160 + 90 * taper) / 255) * microBoost);
+    pushSegment(b.pts[s - 1], b.pts[s], br, bg, bb, a, primary, branchW);
+  }
+
+  // tight strand bundles — each branch reads as one coherent thick vein
+  if (b.depth < 7) {
+    let numStrands, offBase;
+    if (b.radius > 5.0)      { numStrands = 3;  offBase = b.radius * 0.14; }   // trunk
+    else if (b.radius > 2.5) { numStrands = 3;  offBase = b.radius * 0.12; }   // primary
+    else if (b.radius > 1.0) { numStrands = 2;  offBase = b.radius * 0.10; }   // secondary
+    else                     { numStrands = 1;  offBase = 0.30; }              // tendril
+    const strBr = br * 0.92, strBg = bg * 0.92, strBb = bb * 0.92;
+    for (let st = 0; st < numStrands; st++) {
+      // tight cluster — strands packed close to the centerline
+      const stAngle = (Math.PI * 2 * st) / Math.max(1, numStrands);
+      const distMul = 0.7 + (st * 0.4) / Math.max(1, numStrands);
+      const cosA = Math.cos(stAngle), sinA = Math.sin(stAngle);
+      for (let s = 1; s < b.pts.length; s++) {
+        const segT = s / (b.pts.length - 1);
+        const taper = Math.pow(1 - segT * 0.7, 0.5);
+        // base bulge — strands much wider at the inner 20% of each branch, normal after
+        const bt = Math.max(0, Math.min(1, (0.20 - segT) / 0.20));
+        const baseBulge = 1.0 + 4.5 * bt * bt * (3 - 2 * bt);
+        const off = offBase * taper * distMul * baseBulge;
+
+        // segment direction and perpendicular frame
+        const p1 = b.pts[s - 1], p2 = b.pts[s];
+        let dx = p2.x - p1.x, dy = p2.y - p1.y, dz = p2.z - p1.z;
+        const dlen = Math.hypot(dx, dy, dz);
+        if (dlen < 0.001) continue;
+        dx /= dlen; dy /= dlen; dz /= dlen;
+        const tx = Math.abs(dy) < 0.9 ? 0 : 1;
+        const ty = Math.abs(dy) < 0.9 ? 1 : 0;
+        let px = dy * 0 - dz * ty;
+        let py = dz * tx - dx * 0;
+        let pz = dx * ty - dy * tx;
+        const pl = Math.hypot(px, py, pz) || 1;
+        px /= pl; py /= pl; pz /= pl;
+        const qx = dy * pz - dz * py;
+        const qy = dz * px - dx * pz;
+        const qz = dx * py - dy * px;
+
+        const ox = (cosA * px + sinA * qx) * off;
+        const oy = (cosA * py + sinA * qy) * off;
+        const oz = (cosA * pz + sinA * qz) * off;
+
+        const sp1 = { x: p1.x + ox, y: p1.y + oy, z: p1.z + oz };
+        const sp2 = { x: p2.x + ox, y: p2.y + oy, z: p2.z + oz };
+        const sa = Math.min(1, (160 + 90 * taper) / 255) * 0.85;
+        pushSegment(sp1, sp2, strBr, strBg, strBb, sa, primary, branchW);
+      }
+    }
+  }
+}
+
+const geom = new THREE.BufferGeometry();
+geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+geom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+geom.setAttribute('baseAlpha', new THREE.Float32BufferAttribute(baseAlphas, 1));
+geom.setAttribute('aPrimary', new THREE.Float32BufferAttribute(primaries, 1));
+geom.setAttribute('aBranch', new THREE.Float32BufferAttribute(branches_attr, 1));
+
+const mat = new THREE.ShaderMaterial({
+  uniforms: {
+    uSphereTrim: { value: SPHERE_TRIM },
+    uPhase: { value: 0 },
+    uBreath: { value: params.breath },
+    uBob: { value: params.bob },
+    uSway: { value: params.sway },
+    uRustle: { value: params.rustle },
+    uRoots: { value: params.roots },
+    uMotion: { value: params.motion },
+    uPrimaryColor: { value: new THREE.Vector3(...hexToRgb(colorParams.primaryColor)) },
+    uPrimaryThick: { value: params.primaryThick },
+    uBranchThick: { value: params.branchThick },
+    uGlobalAlpha: { value: 1.0 },
+    uFront: { value: params.front },
+    uGlow: { value: params.glow },
+    uSharp: { value: params.sharp },
+    uClamp: { value: params.clampR },
+    uTreeChunk: { value: 0.0 },
+    uTint: { value: new THREE.Vector3(params.tintR, params.tintG, params.tintB) },
+  },
+  vertexShader: `
+    attribute vec3 color;
+    attribute float baseAlpha;
+    attribute float aPrimary;
+    attribute float aBranch;
+    uniform float uPhase;
+    uniform float uBreath;
+    uniform float uBob;
+    uniform float uSway;
+    uniform float uRustle;
+    uniform float uMotion;
+    uniform float uClamp;
+    varying vec3 vColor;
+    varying float vBaseAlpha;
+    varying vec3 vLocalPos;
+    varying float vWorldZ;
+    varying float vPrimary;
+    varying float vBranch;
+    void main() {
+      vec3 pos = position;
+      float r = length(pos.xz);
+      float r3 = length(pos);
+      vPrimary = aPrimary;
+      vBranch = aBranch;
+
+      float mScale = uMotion;
+      // gentle radial breath
+      if (r > 0.0001) {
+        float breath = sin(uPhase * 4.0 + r * 0.018 + abs(pos.y) * 0.010) * 0.4 * uBreath * mScale;
+        pos.x += (pos.x / r) * breath;
+        pos.z += (pos.z / r) * breath;
+      }
+      // body radial drift — visible movement that doesn't fight the spin
+      float bodyR = sin(uPhase * 2.0 + r3 * 0.011) * 0.55 * uSway * mScale;
+      if (r > 0.0001) {
+        pos.x += (pos.x / r) * bodyR;
+        pos.z += (pos.z / r) * bodyR;
+      }
+      // body swirl (tangential) — TINY so it never cancels spin velocity
+      float bodySwirl = sin(uPhase * 3.0 + r3 * 0.014) * 0.012 * uSway * mScale;
+      float bcs = cos(bodySwirl), bss = sin(bodySwirl);
+      float bnx = pos.x * bcs - pos.z * bss;
+      pos.z = pos.x * bss + pos.z * bcs;
+      pos.x = bnx;
+      // y bob — vertical movement, doesn't affect spin
+      float yDir = pos.y >= 0.0 ? 1.0 : -1.0;
+      pos.y += sin(uPhase * 5.0 + r * 0.020) * 0.5 * uBob * mScale * yDir;
+
+      // leaf rustle — radial + y wiggle, MINIMAL tangential
+      float leafFactor = smoothstep(0.40, 1.0, r3 / 170.0);
+      float rPhase = uPhase * 11.0 + r3 * 0.06 + abs(pos.y) * 0.03;
+      float rust = sin(rPhase) * 1.2 * leafFactor * uRustle * mScale;
+      if (r > 0.0001) {
+        pos.x += (pos.x / r) * rust;
+        pos.z += (pos.z / r) * rust;
+      }
+      // tangential leaf swirl — kept small so spin never appears to slow
+      float swirl = sin(uPhase * 6.0 + r3 * 0.045) * 0.020 * leafFactor * uRustle * mScale;
+      float cs = cos(swirl), ss = sin(swirl);
+      float nx = pos.x * cs - pos.z * ss;
+      pos.z = pos.x * ss + pos.z * cs;
+      pos.x = nx;
+      // tip y wiggle — visible vertical drift, doesn't affect spin
+      pos.y += sin(uPhase * 10.0 + r3 * 0.05) * 1.0 * leafFactor * uRustle * mScale * yDir;
+
+      // soft sphere clamp — pulls vertices inward toward sphere boundary
+      if (uClamp > 0.001) {
+        float effectiveR = mix(220.0, 160.0, clamp(uClamp / 1.5, 0.0, 1.0));
+        float pullStr = clamp(uClamp, 0.0, 1.5) * 0.7;
+        float postR = length(pos);
+        if (postR > effectiveR && postR > 0.0001) {
+          float overshoot = postR - effectiveR;
+          pos *= (postR - overshoot * pullStr) / postR;
+        }
+      }
+
+      vColor = color;
+      vBaseAlpha = baseAlpha;
+      vLocalPos = position;
+      vec4 worldPos = modelMatrix * vec4(pos, 1.0);
+      vWorldZ = worldPos.z;
+      gl_Position = projectionMatrix * viewMatrix * worldPos;
+    }
+  `,
+  fragmentShader: `
+    precision highp float;
+    varying vec3 vColor;
+    varying float vBaseAlpha;
+    varying vec3 vLocalPos;
+    varying float vWorldZ;
+    varying float vPrimary;
+    varying float vBranch;
+    uniform float uSphereTrim;
+    uniform float uFront;
+    uniform float uGlow;
+    uniform float uSharp;
+    uniform float uRoots;
+    uniform vec3 uTint;
+    uniform vec3 uPrimaryColor;
+    uniform float uPrimaryThick;
+    uniform float uBranchThick;
+    uniform float uGlobalAlpha;
+    uniform float uTreeChunk;
+    void main() {
+      float sp = uSphereTrim;
+      float horizDist = length(vLocalPos.xz);
+      float outwardness = clamp(horizDist / sp, 0.0, 1.0);
+      float frontness = clamp((vWorldZ + sp) / (2.0 * sp), 0.0, 1.0);
+      float backness = 1.0 - frontness;
+      float polar = clamp(abs(vLocalPos.y) / sp, 0.0, 1.0);
+      float rim = pow(outwardness, 1.6);
+      float crownFill = pow(clamp((abs(vLocalPos.y) - 38.0) / 115.0, 0.0, 1.0), 1.35)
+                      * (1.0 - outwardness * 0.55);
+      float closureGlow =
+          pow(clamp((horizDist - 112.0) / (sp - 112.0), 0.0, 1.0), 1.35)
+        * pow(1.0 - clamp(abs(abs(vLocalPos.y) - 82.0) / 58.0, 0.0, 1.0), 1.2);
+      float depthFactor =
+          0.44
+        + frontness * 0.24 * uFront
+        + rim * 0.18
+        + polar * 0.08
+        + crownFill * 0.20
+        + closureGlow * 0.10
+        - backness * 0.10 * uFront;
+      depthFactor = clamp(depthFactor, 0.28, 1.0);
+      float frontBoost = 0.90 + frontness * 0.24 * uFront;
+      float backFade  = 0.74 + frontness * 0.26 * uFront;
+      float crownBoost = 1.0 + crownFill * 0.22;
+      // root thickness boost — additive lift on negative-y branches
+      float rootMask = smoothstep(15.0, -25.0, vLocalPos.y);
+      float rootLift = 1.0 + rootMask * 0.22 * uRoots;
+
+      // primary stem boost — extra alpha + tint on primary branches & trunk
+      float primaryLift = 1.0 + vPrimary * (uPrimaryThick - 1.0) * 0.6;
+      vec3 primaryTint = mix(vec3(1.0), uPrimaryColor, vPrimary);
+      // branch (limbs) thickness — boosts depth 2-4 branches
+      float branchLift = 1.0 + vBranch * (uBranchThick - 1.0) * 0.55;
+
+      vec3 col = vColor * uTint * primaryTint * frontBoost * (0.44 + depthFactor * 0.56) * crownBoost * uGlow * rootLift;
+      float alpha = vBaseAlpha * depthFactor * backFade * rootLift * primaryLift * branchLift * uGlobalAlpha;
+
+      // silhouette cleanup — zero when uSharp=0, kicks in only when slider moves
+      float normR = length(vLocalPos) / sp;
+      float fadeCenter = 1.15 - clamp(uSharp, 0.0, 2.0) * 0.18;
+      float silhouette = 1.0 - smoothstep(fadeCenter - 0.10, fadeCenter + 0.10, normR);
+      alpha *= mix(1.0, silhouette, step(0.001, uSharp));
+
+      // layered chunked fade — leaves fade first, trunk last as yarn is pulled
+      float tier;
+      if (vPrimary > 0.5) tier = 0.0;
+      else if (vBranch > 0.85) tier = 1.0;
+      else if (vBranch > 0.55) tier = 2.0;
+      else if (vBranch > 0.20) tier = 3.0;
+      else tier = 4.0;
+      float fadeStart = 4.0 - tier;
+      float fadeEnd = fadeStart + 1.0;
+      float chunkFade = 1.0 - smoothstep(fadeStart, fadeEnd, uTreeChunk);
+      alpha *= chunkFade;
+
+      gl_FragColor = vec4(col, alpha);
+    }
+  `,
+  transparent: true,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false,
+});
+
+const lines = new THREE.LineSegments(geom, mat);
+
+const orbGroup = new THREE.Group();
+const orbShells = [];
+for (let i = 0; i < 6; i++) {
+  const r = 8 + i * 3;
+  const baseCol = new THREE.Color(55/255, 190/255, 105/255);
+  const baseOp = Math.max(0, 26 - i * 4) / 255;
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(r, 24, 24),
+    new THREE.MeshBasicMaterial({
+      color: baseCol.clone(), transparent: true, opacity: baseOp,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    })
+  );
+  orbShells.push({ mesh, baseColor: baseCol, baseOpacity: baseOp });
+  orbGroup.add(mesh);
+}
+const coreBase = new THREE.Color(95/255, 230/255, 145/255);
+const orbCore = {
+  mesh: new THREE.Mesh(
+    new THREE.SphereGeometry(6, 32, 32),
+    new THREE.MeshBasicMaterial({
+      color: coreBase.clone(), transparent: true, opacity: 0.86,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    })
+  ),
+  baseColor: coreBase, baseOpacity: 0.86,
+};
+orbGroup.add(orbCore.mesh);
+const hotBase = new THREE.Color(235/255, 255/255, 220/255);
+const orbHot = {
+  mesh: new THREE.Mesh(
+    new THREE.SphereGeometry(2.6, 16, 16),
+    new THREE.MeshBasicMaterial({
+      color: hotBase.clone(), transparent: true, opacity: 0.96,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    })
+  ),
+  baseColor: hotBase, baseOpacity: 0.96,
+};
+orbGroup.add(orbHot.mesh);
+
+function applyOrbVisuals() {
+  const [otr, otg, otb] = hexToRgb(colorParams.orbColor);
+  const [ctr, ctg, ctb] = hexToRgb(colorParams.coreColor);
+  const [htr, htg, htb] = hexToRgb(colorParams.hotColor);
+  const size = params.orbSize;
+  const intensity = params.orbIntensity;
+  orbShells.forEach((s) => {
+    s.mesh.material.color.setRGB(s.baseColor.r * otr, s.baseColor.g * otg, s.baseColor.b * otb);
+    s.mesh.material.opacity = s.baseOpacity * intensity;
+    s.mesh.scale.setScalar(size);
+  });
+  orbCore.mesh.material.color.setRGB(orbCore.baseColor.r * otr * ctr, orbCore.baseColor.g * otg * ctg, orbCore.baseColor.b * otb * ctb);
+  orbCore.mesh.material.opacity = orbCore.baseOpacity * intensity;
+  orbCore.mesh.scale.setScalar(size);
+  orbHot.mesh.material.color.setRGB(orbHot.baseColor.r * otr * htr, orbHot.baseColor.g * otg * htg, orbHot.baseColor.b * otb * htb);
+  orbHot.mesh.material.opacity = orbHot.baseOpacity * intensity;
+  orbHot.mesh.scale.setScalar(size);
+}
+function applyOrbColor(hex) { applyOrbVisuals(); }
+applyOrbVisuals();
+
+const root = new THREE.Group();
+root.rotation.order = 'YXZ';
+function updateScale() {
+  root.scale.x = params.zoom;
+  root.scale.z = params.zoom;
+  root.scale.y = params.zoom * (1 + params.round * 0.18);
+}
+updateScale();
+root.add(lines);
+root.add(orbGroup);
+scene.add(root);
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(
+  new THREE.Vector2(window.innerWidth, window.innerHeight),
+  params.bloom,
+  params.bloomRadius,
+  params.bloomThr
+);
+
+function getSphereScreenFraction() {
+  const fovRad = camera.fov * Math.PI / 180;
+  const halfViewH = Math.tan(fovRad / 2) * camera.position.z;
+  const sphereR = 170 * params.zoom;
+  return Math.min(1, sphereR / halfViewH);
+}
+
+function getPhysicalPixelArea() {
+  const ratio = renderer.getPixelRatio();
+  return window.innerWidth * window.innerHeight * ratio * ratio;
+}
+
+function getDensityFactor() {
+  const fovFrac = getSphereScreenFraction();
+  const fovD = Math.pow(fovFrac, 1.3);
+  const refPx = 1280 * 720;
+  const px = getPhysicalPixelArea();
+  const pxScale = Math.min(1.0, Math.max(0.30, px / refPx));
+  return fovD * pxScale;
+}
+
+function applyDensityScale() {
+  const d = getDensityFactor();
+  if (mat && mat.uniforms.uGlobalAlpha) {
+    mat.uniforms.uGlobalAlpha.value = Math.min(1.0, Math.max(0.18, d * 1.6));
+  }
+}
+
+function applyBloomFromParams() {
+  const d = getDensityFactor();
+  bloom.strength = params.bloom * Math.min(1.4, Math.max(0.28, d * 1.35));
+  bloom.radius = params.bloomRadius;
+  bloom.threshold = params.bloomThr;
+}
+applyBloomFromParams();
+applyDensityScale();
+composer.addPass(bloom);
+
+// --- YARN UNRAVEL ---
+const TRAIL_MAX = 4000;
+const trailPositions = new Float32Array(TRAIL_MAX * 3);
+const trailGeom = new THREE.BufferGeometry();
+trailGeom.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3).setUsage(THREE.DynamicDrawUsage));
+trailGeom.setDrawRange(0, 0);
+const trailMat = new THREE.LineBasicMaterial({
+  color: new THREE.Color(0.5, 1.0, 0.65),
+  transparent: true,
+  opacity: 0.92,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false,
+});
+const trailLine = new THREE.Line(trailGeom, trailMat);
+scene.add(trailLine);
+const trailPoints = [];
+
+function rebuildTrail() {
+  const all = trailPoints.length ? [new THREE.Vector3(0, 0, 0), ...trailPoints] : [];
+  const count = Math.min(all.length, TRAIL_MAX);
+  for (let i = 0; i < count; i++) {
+    const p = all[i];
+    trailPositions[i * 3] = p.x;
+    trailPositions[i * 3 + 1] = p.y;
+    trailPositions[i * 3 + 2] = p.z;
+  }
+  trailGeom.attributes.position.needsUpdate = true;
+  trailGeom.setDrawRange(0, count);
+}
+
+const raycaster = new THREE.Raycaster();
+const dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+const ndcMouse = new THREE.Vector2();
+const cursorWorld = new THREE.Vector3();
+
+function getCursorWorld(clientX, clientY) {
+  ndcMouse.x = (clientX / window.innerWidth) * 2 - 1;
+  ndcMouse.y = -(clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(ndcMouse, camera);
+  if (raycaster.ray.intersectPlane(dragPlane, cursorWorld)) return cursorWorld.clone();
+  return null;
+}
+
+let pulling = false;
+let spinning = false;
+let retractActive = false;
+let manualY = 0, manualX = 0;
+let velY = 0, velX = 0;
+let lastPointerX = 0, lastPointerY = 0;
+let lastDragTime = 0;
+
+const ORB_GRAB_RADIUS = 45; // world-space radius around origin counted as "core"
+
+renderer.domElement.style.cursor = 'grab';
+renderer.domElement.style.touchAction = 'none';
+
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  const w = getCursorWorld(e.clientX, e.clientY);
+  const distFromCore = w ? Math.hypot(w.x, w.y) : 999;
+  if (distFromCore < ORB_GRAB_RADIUS) {
+    // CORE GRAB → unravel yarn
+    pulling = true;
+    retractActive = false;
+    trailPoints.length = 0;
+    if (w) trailPoints.push(w);
+    rebuildTrail();
+    renderer.domElement.style.cursor = 'grabbing';
+  } else {
+    // OUTER GRAB → spin / toss
+    spinning = true;
+    lastPointerX = e.clientX;
+    lastPointerY = e.clientY;
+    lastDragTime = performance.now();
+    velY = 0; velX = 0;
+    renderer.domElement.style.cursor = 'grabbing';
+  }
+  try { renderer.domElement.setPointerCapture(e.pointerId); } catch (_) {}
+});
+
+renderer.domElement.addEventListener('pointermove', (e) => {
+  if (pulling) {
+    const w = getCursorWorld(e.clientX, e.clientY);
+    if (!w) return;
+    const last = trailPoints[trailPoints.length - 1];
+    if (!last || w.distanceTo(last) > 1.5) {
+      trailPoints.push(w);
+      if (trailPoints.length > TRAIL_MAX - 1) trailPoints.shift();
+      rebuildTrail();
+    }
+  } else if (spinning) {
+    const now = performance.now();
+    const dt2 = Math.max(8, now - lastDragTime);
+    const dx = e.clientX - lastPointerX;
+    const dy = e.clientY - lastPointerY;
+    const sensitivity = 0.009;
+    const dY = dx * sensitivity;
+    const dX = dy * sensitivity;
+    manualY += dY;
+    manualX += dX;
+    velY = dY * (16 / dt2);
+    velX = dX * (16 / dt2);
+    lastPointerX = e.clientX;
+    lastPointerY = e.clientY;
+    lastDragTime = now;
+  }
+});
+
+const endInteract = (e) => {
+  if (pulling) {
+    pulling = false;
+    retractActive = true;
+  }
+  if (spinning) {
+    spinning = false;
+  }
+  renderer.domElement.style.cursor = 'grab';
+  try { renderer.domElement.releasePointerCapture(e.pointerId); } catch (_) {}
+};
+renderer.domElement.addEventListener('pointerup', endInteract);
+renderer.domElement.addEventListener('pointercancel', endInteract);
+renderer.domElement.addEventListener('pointerleave', endInteract);
+
+let frame = 0;
+let pullSeconds = 0;
+let lastFrameT = performance.now();
+function animate() {
+  const nowT = performance.now();
+  const dt = Math.min(0.05, (nowT - lastFrameT) / 1000);
+  lastFrameT = nowT;
+
+  frame++;
+  const loopSec = params.loop;
+  const loopT = (frame % (loopSec * FPS)) / (loopSec * FPS);
+  const tau = Math.PI * 2;
+  const baseY = loopT * tau;
+  const baseX = Math.sin(loopT * tau) * params.wobble;
+
+  if (!spinning) {
+    // momentum + decay back to baseline
+    manualY += velY;
+    manualX += velX;
+    velY *= 0.94;
+    velX *= 0.94;
+    manualY *= 0.985;
+    manualX *= 0.96;
+    if (Math.abs(velY) < 0.0002) velY = 0;
+    if (Math.abs(velX) < 0.0002) velX = 0;
+    if (Math.abs(manualY) < 0.0002) manualY = 0;
+    if (Math.abs(manualX) < 0.0002) manualX = 0;
+  }
+
+  root.rotation.y = baseY + manualY;
+  root.rotation.x = baseX + manualX;
+  mat.uniforms.uPhase.value = loopT * tau;
+
+  // pull time — accumulates while pulling, always restores while not pulling
+  if (pulling) {
+    pullSeconds = Math.min(5, pullSeconds + dt);
+  } else {
+    pullSeconds = Math.max(0, pullSeconds - dt * 1.6);
+  }
+  // chunked orb shrink: 1.0, 0.8, 0.6, 0.4, 0.2, 0.0 at seconds 0,1,2,3,4,5
+  const chunk = Math.min(5, Math.floor(pullSeconds));
+  const orbDynamic = 1 - (chunk / 5);
+  // smooth the jump so chunks feel deliberate but not jarring
+  const current = orbGroup.scale.x;
+  const eased = current + (orbDynamic - current) * 0.22;
+  orbGroup.scale.setScalar(eased);
+  // layered tree fade — fragment shader handles per-tier fading based on this
+  mat.uniforms.uTreeChunk.value = pullSeconds;
+
+  // retract trail back into orb
+  if (retractActive && trailPoints.length > 0) {
+    const removeCount = Math.max(2, Math.floor(trailPoints.length * 0.05));
+    trailPoints.splice(-removeCount, removeCount);
+    rebuildTrail();
+    if (trailPoints.length === 0) retractActive = false;
+  }
+
+  composer.render();
+  requestAnimationFrame(animate);
+}
+
+const FPS = 60;
+animate();
+
+const recBtn = document.getElementById('recBtn');
+
+let recorder = null;
+let chunks = [];
+let recStart = 0;
+let recTimer = null;
+recBtn.onclick = () => {
+  if (recorder && recorder.state === 'recording') {
+    if (recTimer) clearInterval(recTimer);
+    recorder.stop();
+    return;
+  }
+  chunks = [];
+  const stream = renderer.domElement.captureStream(FPS);
+  const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+    ? 'video/webm;codecs=vp9'
+    : 'video/webm';
+  recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 20_000_000 });
+  recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+  recorder.onstop = () => {
+    const blob = new Blob(chunks, { type: 'video/webm' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'earth_loop.webm';
+    a.click();
+    URL.revokeObjectURL(url);
+    recBtn.textContent = 'REC';
+    recBtn.style.color = '#7f7';
+    recBtn.style.borderColor = '#7f7';
+  };
+  recorder.start();
+  recStart = performance.now();
+  recBtn.style.color = '#f55';
+  recBtn.style.borderColor = '#f55';
+  recBtn.textContent = 'STOP ● 0.0s';
+  recTimer = setInterval(() => {
+    const elapsed = (performance.now() - recStart) / 1000;
+    recBtn.textContent = `STOP ● ${elapsed.toFixed(1)}s`;
+  }, 100);
+};
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  composer.setSize(window.innerWidth, window.innerHeight);
+  applyBloomFromParams();
+  applyDensityScale();
+});
+
+const studioEl = document.getElementById('studio');
+if (showStudio) studioEl.classList.remove('hidden');
+
+let manualPanelScale = parseFloat(localStorage.getItem('earth_panel_scale') || '0') || null;
+function updatePanelScale() {
+  const autoScale = Math.max(0.5, Math.min(6, window.innerWidth / Math.max(window.outerWidth, 1)));
+  const scale = manualPanelScale || autoScale;
+  studioEl.style.transform = `scale(${scale})`;
+  studioEl.style.transformOrigin = 'top right';
+}
+updatePanelScale();
+window.addEventListener('resize', updatePanelScale);
+
+window.addEventListener('keydown', (e) => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === 's' || e.key === 'S') {
+    studioEl.classList.toggle('hidden');
+  } else if ((e.key === '+' || e.key === '=') && !studioEl.classList.contains('hidden')) {
+    manualPanelScale = Math.min(8, (manualPanelScale || 1) + 0.25);
+    localStorage.setItem('earth_panel_scale', manualPanelScale.toString());
+    updatePanelScale();
+    e.preventDefault();
+  } else if ((e.key === '-' || e.key === '_') && !studioEl.classList.contains('hidden')) {
+    manualPanelScale = Math.max(0.4, (manualPanelScale || 1) - 0.25);
+    localStorage.setItem('earth_panel_scale', manualPanelScale.toString());
+    updatePanelScale();
+    e.preventDefault();
+  } else if (e.key === '0' && !studioEl.classList.contains('hidden')) {
+    manualPanelScale = null;
+    localStorage.removeItem('earth_panel_scale');
+    updatePanelScale();
+    e.preventDefault();
+  }
+});
+
+function applyParam(k, v) {
+  switch (k) {
+    case 'bloom': applyBloomFromParams(); break;
+    case 'bloomRadius': applyBloomFromParams(); break;
+    case 'bloomThr': applyBloomFromParams(); break;
+    case 'fov': camera.fov = v; camera.updateProjectionMatrix(); applyBloomFromParams(); applyDensityScale(); break;
+    case 'zoom': updateScale(); applyBloomFromParams(); applyDensityScale(); break;
+    case 'round': updateScale(); break;
+    case 'motion': mat.uniforms.uMotion.value = v; break;
+    case 'breath': mat.uniforms.uBreath.value = v; break;
+    case 'bob': mat.uniforms.uBob.value = v; break;
+    case 'sway': mat.uniforms.uSway.value = v; break;
+    case 'rustle': mat.uniforms.uRustle.value = v; break;
+    case 'roots': mat.uniforms.uRoots.value = v; break;
+    case 'primaryThick': mat.uniforms.uPrimaryThick.value = v; break;
+    case 'branchThick': mat.uniforms.uBranchThick.value = v; break;
+    case 'orbSize': applyOrbVisuals(); break;
+    case 'orbIntensity': applyOrbVisuals(); break;
+    case 'front': mat.uniforms.uFront.value = v; break;
+    case 'glow': mat.uniforms.uGlow.value = v; break;
+    case 'sharp': mat.uniforms.uSharp.value = v; break;
+    case 'clampR': mat.uniforms.uClamp.value = v; break;
+    case 'tintR': mat.uniforms.uTint.value.x = v; break;
+    case 'tintG': mat.uniforms.uTint.value.y = v; break;
+    case 'tintB': mat.uniforms.uTint.value.z = v; break;
+    // wobble + loop are read directly from params each frame, no apply needed
+  }
+}
+
+function syncUrl() {
+  const u = new URL(window.location.href);
+  for (const k of Object.keys(defaults)) {
+    if (Math.abs(params[k] - defaults[k]) < 1e-6) u.searchParams.delete(k);
+    else u.searchParams.set(k, params[k].toString());
+  }
+  for (const k of Object.keys(colorDefaults)) {
+    if (colorParams[k].toLowerCase() === colorDefaults[k].toLowerCase()) u.searchParams.delete(k);
+    else u.searchParams.set(k, colorParams[k].replace('#', ''));
+  }
+  window.history.replaceState(null, '', u);
+}
+
+function applyColorParam(k, hex) {
+  if (k === 'orbColor' || k === 'coreColor' || k === 'hotColor') {
+    applyOrbVisuals();
+  } else if (k === 'primaryColor') {
+    const [r, g, b] = hexToRgb(hex);
+    mat.uniforms.uPrimaryColor.value.set(r, g, b);
+  }
+}
+
+studioEl.querySelectorAll('input[type=color]').forEach((input) => {
+  const k = input.dataset.ck;
+  input.value = colorParams[k];
+  input.addEventListener('input', () => {
+    colorParams[k] = input.value;
+    applyColorParam(k, input.value);
+    syncUrl();
+  });
+});
+
+const fmtFor = (k) => (v) => k === 'loop' ? (+v).toFixed(0) : (+v).toFixed(2);
+
+function refreshInput(k) {
+  const input = studioEl.querySelector(`input[data-k="${k}"]`);
+  if (!input) return;
+  input.value = params[k];
+  const valEl = input.parentElement.querySelector('.val');
+  if (valEl) valEl.textContent = fmtFor(k)(params[k]);
+}
+
+const history = [];
+const HISTORY_MAX = 200;
+
+function snapshot() {
+  const s = { _colors: {} };
+  for (const k of Object.keys(defaults)) s[k] = params[k];
+  for (const k of Object.keys(colorDefaults)) s._colors[k] = colorParams[k];
+  return s;
+}
+
+function pushHistory(snap) {
+  history.push(snap);
+  if (history.length > HISTORY_MAX) history.shift();
+}
+
+function applySnapshot(snap) {
+  for (const k of Object.keys(defaults)) {
+    params[k] = (k in snap) ? snap[k] : defaults[k];
+  }
+  if (snap._colors) {
+    for (const k of Object.keys(colorDefaults)) {
+      colorParams[k] = snap._colors[k] || colorDefaults[k];
+    }
+  }
+  applyAll();
+}
+
+let preDragSnapshot = null;
+
+studioEl.querySelectorAll('input[type=range]').forEach((input) => {
+  const k = input.dataset.k;
+  input.value = params[k];
+  const valEl = input.parentElement.querySelector('.val');
+  valEl.textContent = fmtFor(k)(params[k]);
+  input.addEventListener('pointerdown', () => {
+    preDragSnapshot = snapshot();
+  });
+  input.addEventListener('input', () => {
+    const v = parseFloat(input.value);
+    params[k] = v;
+    valEl.textContent = fmtFor(k)(v);
+    applyParam(k, v);
+    syncUrl();
+  });
+  input.addEventListener('change', () => {
+    if (preDragSnapshot) {
+      pushHistory(preDragSnapshot);
+      preDragSnapshot = null;
+    }
+  });
+});
+
+const PRESETS_KEY = 'earth_presets';
+const getPresets = () => {
+  try { return JSON.parse(localStorage.getItem(PRESETS_KEY) || '{}'); }
+  catch { return {}; }
+};
+const setPresets = (p) => localStorage.setItem(PRESETS_KEY, JSON.stringify(p));
+
+const loadSel = document.getElementById('loadSel');
+function refreshLoadList() {
+  const p = getPresets();
+  const names = Object.keys(p).sort();
+  loadSel.innerHTML = '<option value="">— load preset —</option>' +
+    names.map((n) => `<option value="${n.replace(/"/g, '&quot;')}">${n}</option>`).join('');
+}
+refreshLoadList();
+
+function applyAll() {
+  for (const k of Object.keys(defaults)) {
+    applyParam(k, params[k]);
+    refreshInput(k);
+  }
+  for (const k of Object.keys(colorDefaults)) {
+    applyColorParam(k, colorParams[k]);
+    const inp = studioEl.querySelector(`input[data-ck="${k}"]`);
+    if (inp) inp.value = colorParams[k];
+  }
+  syncUrl();
+}
+
+document.getElementById('undoBtn').addEventListener('click', () => {
+  const prev = history.pop();
+  if (!prev) return;
+  applySnapshot(prev);
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  pushHistory(snapshot());
+  for (const k of Object.keys(defaults)) params[k] = defaults[k];
+  for (const k of Object.keys(colorDefaults)) colorParams[k] = colorDefaults[k];
+  applyAll();
+});
+
+document.getElementById('saveBtn').addEventListener('click', () => {
+  const name = prompt('save preset as:');
+  if (!name) return;
+  const p = getPresets();
+  p[name.trim()] = { ...params };
+  setPresets(p);
+  refreshLoadList();
+  loadSel.value = name.trim();
+});
+
+loadSel.addEventListener('change', () => {
+  const name = loadSel.value;
+  if (!name) return;
+  const p = getPresets();
+  if (!p[name]) return;
+  pushHistory(snapshot());
+  for (const k of Object.keys(defaults)) {
+    if (k in p[name]) params[k] = p[name][k];
+  }
+  applyAll();
+});
+
+document.getElementById('delBtn').addEventListener('click', () => {
+  const name = loadSel.value;
+  if (!name) { alert('select a preset to delete first'); return; }
+  if (!confirm(`delete preset "${name}"?`)) return;
+  const p = getPresets();
+  delete p[name];
+  setPresets(p);
+  refreshLoadList();
+});
+
+const randRanges = {
+  bloom: [0.2, 1.3], bloomRadius: [0.3, 1.0], bloomThr: [0, 0.2],
+  loop: [20, 60], zoom: [0.7, 1.5], fov: [30, 65], wobble: [0, 0.25],
+  motion: [0.4, 1.8],
+  breath: [0.4, 2.0], bob: [0.4, 2.0], sway: [0.4, 2.0], rustle: [0.4, 2.0],
+  roots: [0, 1.4], primaryThick: [0.7, 2.5], branchThick: [0.7, 2.5],
+  front: [0.5, 2.5], glow: [0.5, 1.5], sharp: [0, 0.8], round: [0, 1.3],
+  orbSize: [0.5, 1.8], orbIntensity: [0.4, 1.8],
+  tintR: [0.6, 1.4], tintG: [0.6, 1.4], tintB: [0.6, 1.4],
+};
+function hslToHex(h, s, l) {
+  const k = n => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  const t = n => Math.round(255 * f(n)).toString(16).padStart(2, '0');
+  return '#' + t(0) + t(8) + t(4);
+}
+function randHex() {
+  return hslToHex(Math.random() * 360, 0.4 + Math.random() * 0.5, 0.5 + Math.random() * 0.35);
+}
+document.getElementById('randomBtn').addEventListener('click', () => {
+  pushHistory(snapshot());
+  for (const k of Object.keys(randRanges)) {
+    const [lo, hi] = randRanges[k];
+    let v = lo + Math.random() * (hi - lo);
+    if (k === 'loop' || k === 'fov') v = Math.round(v);
+    params[k] = v;
+  }
+  for (const k of Object.keys(colorDefaults)) {
+    colorParams[k] = randHex();
+  }
+  applyAll();
+});
+
+document.getElementById('exportBtn').addEventListener('click', async () => {
+  const all = getPresets();
+  const count = Object.keys(all).length;
+  if (count === 0) { alert('no presets to export — save some first'); return; }
+  const json = JSON.stringify(all, null, 2);
+  try {
+    await navigator.clipboard.writeText(json);
+    alert(`${count} preset${count > 1 ? 's' : ''} copied to clipboard.\nsend it to peace — she hits import and pastes.`);
+  } catch {
+    window.prompt('copy this JSON and share it:', json);
+  }
+});
+
+document.getElementById('importBtn').addEventListener('click', () => {
+  const json = window.prompt('paste preset JSON here:');
+  if (!json) return;
+  try {
+    const imported = JSON.parse(json);
+    if (typeof imported !== 'object' || !imported) throw new Error('not an object');
+    const current = getPresets();
+    const merged = { ...current, ...imported };
+    setPresets(merged);
+    refreshLoadList();
+    const n = Object.keys(imported).length;
+    alert(`imported ${n} preset${n > 1 ? 's' : ''}`);
+  } catch (e) {
+    alert('invalid JSON — make sure you pasted the whole block');
+  }
+});
+</script>
+</body>
+</html>
