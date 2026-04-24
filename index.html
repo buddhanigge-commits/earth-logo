@@ -1348,34 +1348,117 @@ document.getElementById('randomBtn').addEventListener('click', () => {
   applyAll();
 });
 
-document.getElementById('exportBtn').addEventListener('click', async () => {
-  const all = getPresets();
-  const count = Object.keys(all).length;
-  if (count === 0) { alert('no presets to export — save some first'); return; }
-  const json = JSON.stringify(all, null, 2);
-  try {
-    await navigator.clipboard.writeText(json);
-    alert(`${count} preset${count > 1 ? 's' : ''} copied to clipboard.\nsend it to peace — she hits import and pastes.`);
-  } catch {
-    window.prompt('copy this JSON and share it:', json);
-  }
+// Export current settings + all saved presets as a downloadable .earth.json file
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const bundle = {
+    type: 'earth-bundle',
+    exportedAt: new Date().toISOString(),
+    active: { ...params, ...colorParams },
+    presets: getPresets(),
+  };
+  const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+  a.href = url;
+  a.download = `earth-${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
 
+// Import via file picker
 document.getElementById('importBtn').addEventListener('click', () => {
-  const json = window.prompt('paste preset JSON here:');
-  if (!json) return;
-  try {
-    const imported = JSON.parse(json);
-    if (typeof imported !== 'object' || !imported) throw new Error('not an object');
-    const current = getPresets();
-    const merged = { ...current, ...imported };
-    setPresets(merged);
-    refreshLoadList();
-    const n = Object.keys(imported).length;
-    alert(`imported ${n} preset${n > 1 ? 's' : ''}`);
-  } catch (e) {
-    alert('invalid JSON — make sure you pasted the whole block');
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,application/json';
+  input.onchange = () => {
+    const file = input.files && input.files[0];
+    if (file) loadFile(file);
+  };
+  input.click();
+});
+
+// Apply dropped/loaded data (handles bundles or single-preset objects)
+function applyDroppedData(data) {
+  if (!data || typeof data !== 'object') return false;
+
+  if (data.active || data.presets) {
+    if (data.presets && typeof data.presets === 'object') {
+      const current = getPresets();
+      setPresets({ ...current, ...data.presets });
+      refreshLoadList();
+    }
+    if (data.active && typeof data.active === 'object') {
+      pushHistory(snapshot());
+      for (const k of Object.keys(defaults)) {
+        if (k in data.active) params[k] = data.active[k];
+      }
+      for (const k of Object.keys(colorDefaults)) {
+        if (k in data.active) colorParams[k] = data.active[k];
+      }
+      applyAll();
+    }
+    return true;
   }
+
+  // Treat as raw preset bundle (multiple named presets)
+  const looksLikePresetBundle = Object.values(data).every(v => v && typeof v === 'object' && !Array.isArray(v));
+  if (looksLikePresetBundle) {
+    const current = getPresets();
+    setPresets({ ...current, ...data });
+    refreshLoadList();
+    return true;
+  }
+
+  // Single flat preset
+  pushHistory(snapshot());
+  for (const k of Object.keys(defaults)) {
+    if (k in data) params[k] = data[k];
+  }
+  for (const k of Object.keys(colorDefaults)) {
+    if (k in data) colorParams[k] = data[k];
+  }
+  applyAll();
+  return true;
+}
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      const ok = applyDroppedData(data);
+      if (!ok) alert('file structure not recognized');
+    } catch (err) {
+      alert('not a valid Earth file');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// Drag-and-drop anywhere on the page
+let dropOverlay = null;
+window.addEventListener('dragover', (e) => {
+  if (!e.dataTransfer || !Array.from(e.dataTransfer.types).includes('Files')) return;
+  e.preventDefault();
+  if (!dropOverlay) {
+    dropOverlay = document.createElement('div');
+    dropOverlay.style.cssText = 'position:fixed;inset:0;border:6px dashed #4fa;background:rgba(0,30,15,0.18);z-index:999;display:flex;align-items:center;justify-content:center;color:#9fc;font:18px ui-monospace,monospace;pointer-events:none;letter-spacing:0.1em;';
+    dropOverlay.textContent = '⏷  drop earth file to load  ⏷';
+    document.body.appendChild(dropOverlay);
+  }
+});
+window.addEventListener('dragleave', (e) => {
+  if (e.relatedTarget) return;
+  if (dropOverlay) { dropOverlay.remove(); dropOverlay = null; }
+});
+window.addEventListener('drop', (e) => {
+  e.preventDefault();
+  if (dropOverlay) { dropOverlay.remove(); dropOverlay = null; }
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (file) loadFile(file);
 });
 </script>
 </body>
