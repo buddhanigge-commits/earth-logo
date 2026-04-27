@@ -4,6 +4,12 @@
 <meta charset="utf-8" />
 <title>EARTH</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<script>
+  // Apply transparent class IMMEDIATELY before any styles paint, before module imports.
+  if (location.search.includes('transparent')) {
+    document.documentElement.classList.add('transparent');
+  }
+</script>
 <style>
   html, body { margin: 0; padding: 0; background: #000; overflow: hidden; }
   html.transparent, html.transparent body { background: transparent !important; background-color: transparent !important; }
