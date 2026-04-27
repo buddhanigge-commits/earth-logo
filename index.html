@@ -826,7 +826,14 @@ root.add(lines);
 root.add(orbGroup);
 scene.add(root);
 
-const composer = new EffectComposer(renderer);
+// Use an explicit RGBA render target so the composer preserves alpha through bloom.
+const composerRT = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, {
+  format: THREE.RGBAFormat,
+  type: THREE.HalfFloatType,
+  stencilBuffer: false,
+  depthBuffer: false,
+});
+const composer = new EffectComposer(renderer, composerRT);
 const renderPass = new RenderPass(scene, camera);
 if (wantTransparent) {
   renderPass.clearColor = new THREE.Color(0, 0, 0);
@@ -889,11 +896,7 @@ function animate() {
   root.rotation.y = loopT * tau;
   root.rotation.x = Math.sin(loopT * tau) * params.wobble;
   mat.uniforms.uPhase.value = loopT * tau;
-  if (wantTransparent) {
-    renderer.render(scene, camera);
-  } else {
-    composer.render();
-  }
+  composer.render();
   requestAnimationFrame(animate);
 }
 
