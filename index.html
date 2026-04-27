@@ -896,7 +896,14 @@ function animate() {
   root.rotation.y = loopT * tau;
   root.rotation.x = Math.sin(loopT * tau) * params.wobble;
   mat.uniforms.uPhase.value = loopT * tau;
-  composer.render();
+  // In transparent mode, bypass the bloom composer — bloom destroys alpha.
+  // Branches still render via additive blend onto the transparent canvas.
+  if (wantTransparent) {
+    renderer.clear();
+    renderer.render(scene, camera);
+  } else {
+    composer.render();
+  }
   requestAnimationFrame(animate);
 }
 
