@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <style>
   html, body { margin: 0; padding: 0; background: #000; overflow: hidden; }
+  html.transparent, html.transparent body { background: transparent !important; }
   canvas { display: block; }
   #studio {
     position: fixed; top: 12px; right: 12px; z-index: 99;
@@ -448,17 +449,21 @@ console.log('Generated', branches.length, 'branches');
   console.log('--- pick the percentile that matches your visual definition of "round" ---');
 })();
 
+const wantTransparent = urlParams.has('transparent');
+
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x000000);
+if (!wantTransparent) scene.background = new THREE.Color(0x000000);
+if (wantTransparent) document.documentElement.classList.add('transparent');
 
 const camera = new THREE.PerspectiveCamera(params.fov, window.innerWidth / window.innerHeight, 1, 2000);
 camera.position.set(0, 0, 720);
 camera.lookAt(0, 0, 0);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: wantTransparent });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
+if (wantTransparent) renderer.setClearColor(0x000000, 0);
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
