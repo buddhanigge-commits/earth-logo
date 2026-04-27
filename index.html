@@ -889,7 +889,11 @@ function animate() {
   root.rotation.y = loopT * tau;
   root.rotation.x = Math.sin(loopT * tau) * params.wobble;
   mat.uniforms.uPhase.value = loopT * tau;
-  composer.render();
+  if (wantTransparent) {
+    renderer.render(scene, camera);
+  } else {
+    composer.render();
+  }
   requestAnimationFrame(animate);
 }
 
