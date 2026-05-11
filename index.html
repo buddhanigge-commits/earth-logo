@@ -468,7 +468,9 @@ camera.position.set(0, 0, 720);
 camera.lookAt(0, 0, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: wantTransparent });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+// Supersample: force 3x backing buffer so bloom + lines render at higher detail,
+// matching the "25% browser zoom" crispness at any zoom level.
+renderer.setPixelRatio(Math.max(2.5, Math.min(window.devicePixelRatio * 2.5, 4)));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
 if (wantTransparent) renderer.setClearColor(0x000000, 0);
